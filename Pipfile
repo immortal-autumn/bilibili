@@ -1,0 +1,16 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.mirrors.ustc.edu.cn/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+selenium = "*"
+ipython = "*"
+tqdm = "*"
+requests = "*"
+faker = "*"
+
+[requires]
+python_version = "3.8"
