@@ -179,7 +179,7 @@ class Video:
         url = 'https://api.bilibili.com/x/web-interface/view'
         response = requests.get(url, params=dict(aid=self.id))
         data = response.json().get('data')
-        for key in ('pic', 'title', 'pubdate', 'desc'):
+        for key in ('pic', 'title', 'pubdate', 'desc', 'duration'):
             info[key] = data.get(key)
         info['owner'] = data['owner']['mid']
         # stat info
