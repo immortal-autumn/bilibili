@@ -15,17 +15,23 @@ if __name__ == '__main__':
     # a = Auto(web_driver=browser, login=True)
 
     # 直播间流言
+    browser.get('https://bilibili.com')
     input('Please login >>> ')
     live = LiveByArea(27)
     for url in live.urls:
-        browser.get(url)
-        sleep(5)
-        browser.find_element_by_class_name('chat-input.border-box') \
-            .send_keys('串门～今天有没有好好学习呀，一起加油')
-        sleep(3)
         try:
-            browser.find_element_by_class_name('txt') \
-                .click()
+            browser.get(url)
+            sleep(5)
+            texts = (
+                '记得早点休息呀，早起学习效率更高哟～',
+                'UP 加油呀！ ^_^',
+            )
+            for text in texts:
+                browser.find_element_by_class_name('chat-input.border-box') \
+                    .send_keys(text)
+                sleep(3)
+                browser.find_element_by_class_name('txt') \
+                    .click()
         except:
             continue
         sleep(3)
