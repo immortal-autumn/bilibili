@@ -12,6 +12,8 @@ tqdm = "*"
 requests = "*"
 faker = "*"
 matplotlib = "*"
+aiohttp = "*"
+sqlalchemy = "*"
 
 [requires]
 python_version = "3.8"

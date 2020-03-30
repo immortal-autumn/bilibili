@@ -26,54 +26,122 @@ class User:
     '''User model
 
     API:
-        - videos: iterator, all Video
+        - property
+            - videos: iterator
+            - number_of_videos: int
     '''
+
+    _URL_VIDEO = 'https://api.bilibili.com/x/space/arc/search'
+    _URL_FOLLOWER = 'https://api.bilibili.com/x/relation/followers'
+    _URL_FOLLOWING = 'https://api.bilibili.com/x/relation/followings'
+
     def __init__(self, id, info=True):
-        self.id = id
+        self.id = int(id)
         self._headers = {
             'host': 'api.bilibili.com',
             'referer': 'https://www.bilibili.com',
             'user-agent': F.user_agent(),
         }
-        if info:
-            self.info = self._find_info()
+        self.info = self._find_info() if info else None
 
 
     def __repr__(self):
-        return f'<User({self.info["name"]}) @ LV {self.info["level"]}>'
-
-
-    @property
-    def video_ids(self):
-        for page in self._videos():
-            yield from page
+        if self.info:
+            return f'<User("{self.info["name"]}") @ LV {self.info["level"]}>'
+        else:
+            return f'<User({self.id})>'
 
 
     @property
     def videos(self):
-        for page in self._videos():
+        '''Iterate all videos from user
+
+        Example:
+            >>> for video in user.videos:
+            ...     print(video)
+        '''
+        url = self._URL_VIDEO
+        count = self.number_of_videos
+        keys1, key2 = ('data', 'list', 'vlist'), 'aid'
+        for page in self._data(url, count, 30, 'pubdate', 'mid', keys1, key2):
             for id in page:
                 yield Video(id)
 
 
-    def _videos(self, ps=30):
-        first_page = self._videos_data_at(1)
-        page_info = first_page['data']['page']
-        page_number = math.ceil(page_info['count']/ps)
-        f, g = self._find_videos, self._videos_data_at
-        return (f(g(page+1)) for page in range(page_number))
+    @property
+    def number_of_videos(self):
+        '''Return the number of videos
+        '''
+        data = self._data_at(self._URL_VIDEO, 1, 30, 'pubdate', 'mid')
+        return data['data']['page']['count']
 
 
-    def _videos_data_at(self, page, ps=30):
-        url = 'https://api.bilibili.com/x/space/arc/search'
-        params = dict(mid=self.id, ps=ps, pn=page, order='pubdate')
+    @property
+    def followers(self):
+        '''Iterate all followers from user
+
+        Example:
+            >>> for follower in user.followers:
+            ...     print(follower)
+        '''
+        url = self._URL_FOLLOWER
+        count = self.number_of_followers
+        keys1, key2 = ('data', 'list'), 'mid'
+        for page in self._data(url, count, 20, 'desc', 'vmid', keys1, key2):
+            for id in page:
+                yield User(id, self.info is not None)
+
+
+    @property
+    def number_of_followers(self):
+        '''Return the number of followers
+        '''
+        data = self._data_at(self._URL_FOLLOWER, 1, 20, 'desc', 'vmid')
+        return data['data']['total']
+
+
+    @property
+    def followings(self):
+        '''Iterate all followings from user
+
+        Example:
+            >>> for following in user.followings:
+            ...     print(following)
+        '''
+        url = self._URL_FOLLOWING
+        keys1, key2 = ('data', 'list'), 'mid'
+        count = self.number_of_followings
+        for page in self._data(url, count, 20, 'desc', 'vmid', keys1, key2):
+            for id in page:
+                yield User(id, self.info is not None)
+
+
+    @property
+    def number_of_followings(self):
+        '''Return the number of followings
+        '''
+        data = self._data_at(self._URL_FOLLOWING, 1, 20, 'desc', 'vmid')
+        return data['data']['total']
+
+
+    def _data(self, url, count, ps, order, id_name, keys1, key2):
+        page_number = math.ceil(count/ps)
+        f, g = self._ids_at, self._data_at
+        return (f(g(url, page+1, ps, order, id_name), keys1, key2) for page in range(page_number))
+
+
+    def _data_at(self, url, page, ps, order, id_name):
+        params = dict(ps=ps, pn=page, order=order)
+        params[id_name] = self.id
         response = requests.get(url, params=params, headers=self._headers)
         return response.json()
 
 
-    def _find_videos(self, data):
-        for video in data['data']['list']['vlist']:
-            yield video['aid']
+    def _ids_at(self, data, keys1, key2):
+        for key in keys1:
+            data = data[key]
+        for video in data:
+            yield video[key2]
 
 
     def _find_info(self):
@@ -285,3 +353,5 @@ if __name__ == '__main__':
     v = Video(70885948)
     cs = v.comments
     print(next(cs))
+
+    u = User(354576498, False)
