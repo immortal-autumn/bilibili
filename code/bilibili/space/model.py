@@ -135,8 +135,14 @@ class User:
     def dynamics(self):
         '''Iterable all dynamics
         '''
-        warnings.warn('Dynamics have complex types, to be done.', Warning)
-        yield from self._dynamics()
+        # warnings.warn('Dynamics have complex types, to be done.', Warning)
+        for dynamic in self._dynamics():
+            desc = dynamic.pop('desc')
+            yield Dynamic.from_args(
+                id=desc['dynamic_id'], user_id=desc['uid'], view=desc['view'],
+                repost=desc['repost'], number_of_comments=desc['comment'],
+                like=desc['like'], timestamp=desc['timestamp'], others=desc,
+            )
 
 
     @property
@@ -262,7 +268,7 @@ class Video:
 
     def __repr__(self):
         if self.info:
-            return f'<Video({self.info["title"]}) @ View {self.info["view"]}>'
+            return f'<Video({self.info["title"]}) @ {self.info["view"]}>'
         else:
             return f'<Video({self.id})>'
 
@@ -283,20 +289,20 @@ class Video:
             self.info = self._find_info()
 
 
-    def _comments(self):
-        first_page = self._comments_data_at(1)
+    def _comments(self, type=1):
+        first_page = self._comments_data_at(1, type=type)
         if first_page['data']:
             page_info = first_page['data']['page']
             page_number = math.ceil(page_info['count']/page_info['size'])
             f, g = self._find_comments, self._comments_data_at
-            return (f(g(page+1)['data']['replies'])
+            return (f(g(page+1, type=type)['data']['replies'])
                 for page in range(page_number))
         return list(list())
 
 
-    def _comments_data_at(self, page, root=0, ps=10, sort=2):
+    def _comments_data_at(self, page, root=0, ps=10, sort=2, type=1):
         url = 'https://api.bilibili.com/x/v2/reply'
-        params = dict(pn=page, type=1, oid=self.id, sort=sort, _=self._timestamp)
+        params = dict(pn=page, type=type, oid=self.id, sort=sort, _=self._timestamp)
         if root:
             url += '/reply'
             params.update(dict(root=root, ps=ps))
@@ -334,6 +340,53 @@ class Video:
         for key in ('view', 'danmaku', 'reply', 'favorite', 'coin', 'share', 'like'):
             info[key] = stat.get(key)
         return info
+
+
+
+class Dynamic:
+    '''Dynamic model
+
+    API:
+        - property
+            - comments, iterator
+            - number_of_comments, int
+        - function
+            - set_info()
+    '''
+
+    def __init__(self, id, info=True):
+        self.id = int(id)
+        info and self.set_info()
+
+
+    def __repr__(self):
+        view = getattr(self, 'view', 'None')
+        return f'<Dynamic({self.id} @ View {view})>'
+
+
+    @classmethod
+    def from_args(cls, id, **kwargs):
+        self = cls(id, False)
+        keys = ('user_id', 'view', 'repost', 'number_of_comments', 'like', 'timestamp')
+        for key in keys:
+            setattr(self, key, kwargs.get(key, None))
+        self.others = kwargs.get('others', None)
+        return self
+
+
+    @property
+    def comments(self):
+        pass
+
+
+    def set_info(self):
+        url = 'https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/get_dynamic_detail'
+        params = dict(dynamic_id=self.id)
+        data = requests.get(url, params=params).json()['data']['card']['desc']
+        keys = ('view', 'repost', 'like', 'timestamp')
+        for key in keys:
+            setattr(self, key, data.get(key, None))
+        self.number_of_comments = data['comment']
 
 
 

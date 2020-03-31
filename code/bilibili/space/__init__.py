@@ -1,1 +1,1 @@
-from .model import User, Video, Comment
+from .model import User, Video, Dynamic, Comment
