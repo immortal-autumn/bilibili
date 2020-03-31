@@ -1,4 +1,4 @@
-__all__ = ('User', 'Video', 'Comment')
+__all__ = ('User', 'Video', 'Dynamic', 'Comment')
 
 
 
@@ -7,6 +7,7 @@ import faker
 import math
 import requests
 import time
+import warnings
 
 
 
@@ -26,6 +27,9 @@ class User:
             - number_of_followers: int
             - followings: iterator
             - number_of_followings: int
+            + dynamics: itertor, to be done
+            + channels: NotImplementedError
+            + favorites: NotImplementedError
         - function
             - set_info()
             - set_cookies(cookies: dict)
@@ -127,6 +131,24 @@ class User:
         return data['data']['total']
 
 
+    @property
+    def dynamics(self):
+        '''Iterable all dynamics
+        '''
+        warnings.warn('Dynamics have complex types, to be done.', Warning)
+        yield from self._dynamics()
+
+
+    @property
+    def channels(self):
+        raise NotImplementedError
+
+
+    @property
+    def favorites(self):
+        raise NotImplementedError
+
+
     def set_info(self):
         '''Set information of current user
         '''
@@ -170,8 +192,21 @@ class User:
             for video in data:
                 yield video[key2]
         except KeyError:
-            print('请使用 selenium 登录，未验证用户无法获取过多信息。')
+            warnings.warn('Unauthenticated access cannot get more information, ' \
+                'please login by selenium.', Warning)
             return None
+
+
+    def _dynamics(self):
+        url = 'https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history'
+        params = dict(host_uid=self.id, offset_dynamic_id=0)
+        while True:
+            response = requests.get(url, params=params)  # do not use `self._session`
+            data = response.json()['data']
+            yield from data['cards']
+            if not data['has_more']:
+                break
+            params['offset_dynamic_id'] = data['next_offset']
 
 
     def _find_info(self):
@@ -213,7 +248,7 @@ class Video:
     '''
 
     def __init__(self, id, info=True):
-        self.id = id
+        self.id = int(id)
         self._session = requests.Session()
         self._session.headers.update({
             'host': 'api.bilibili.com',
@@ -244,7 +279,7 @@ class Video:
 
 
     def set_info(self):
-        if self.info:
+        if not self.info:
             self.info = self._find_info()
 
 
@@ -272,7 +307,7 @@ class Video:
         if replies:
             for reply in replies:
                 message = reply['content']['message']
-                mid = reply['member']['mid']
+                mid = int(reply['member']['mid'])
                 ctime = reply['ctime']
                 like = reply['like']
                 yield Comment(message, like, mid, ctime)

@@ -2,7 +2,9 @@
 from time import sleep
 from selenium import webdriver
 
-from bilibili.model import Auto
+from bilibili.auto import tests
+
+Auto = tests.Auto
 
 from experimental_features import LiveByArea
 
@@ -28,8 +30,7 @@ if __name__ == '__main__':
             browser.get(url)
             sleep(5)
             texts = (
-                '午安呀 ^_^',
-                '中午一定记得按时吃饭呀，睡个午觉下午更精神呢！',
+                    '晚上记得按时吃饭呀，休息一下吧～',
             )
             for text in texts:
                 browser.find_element_by_class_name('chat-input.border-box') \
