@@ -13,7 +13,9 @@ if __name__ == '__main__':
     # IPython >>> %run -i main.py
     ## Cache the webdriver
     if 'browser' not in locals():
-        browser = webdriver.Firefox()
+        browser = webdriver.Chrome()
+    else:
+        exit(0)
     # a = Auto(web_driver=browser, login=True)
 
     # 直播间留言
