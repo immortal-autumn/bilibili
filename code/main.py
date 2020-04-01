@@ -13,14 +13,17 @@ if __name__ == '__main__':
     # IPython >>> %run -i main.py
     ## Cache the webdriver
     if 'browser' not in locals():
-        browser = webdriver.Firefox()
+        browser = webdriver.Chrome()
+    else:
+        exit(0)
     # a = Auto(web_driver=browser, login=True)
 
     # 直播间留言
-    browser.get('https://bilibili.com')
+    browser.get('https://passport.bilibili.com/login')
     input('Please login >>> ')
     live = LiveByArea(27)
     urls = dict()
+    tag = 'room-owner-username.live-skin-normal-a-text.dp-i-block.v-middle'
     for url in live.urls:
         if url in urls:
             continue
@@ -29,8 +32,10 @@ if __name__ == '__main__':
         try:
             browser.get(url)
             sleep(5)
+            user_name = browser.find_elements_by_class_name(tag)[0].text
             texts = (
-                    '晚上记得按时吃饭呀，休息一下吧～',
+                f'晚上好呀，{user_name}～',
+                '记得按时吃晚饭呀，加油！',
             )
             for text in texts:
                 browser.find_element_by_class_name('chat-input.border-box') \
@@ -38,6 +43,7 @@ if __name__ == '__main__':
                 sleep(3)
                 browser.find_element_by_class_name('txt') \
                     .click()
-        except:
+        except Exception as e:
+            print(e)
             continue
         sleep(3)
